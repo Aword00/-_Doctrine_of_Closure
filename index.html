@@ -1,0 +1,1178 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>閉環論</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;400;700;900&family=IM+Fell+English&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #080c1c;
+  --gold: #c9a84c;
+  --gold-light: #e8d5a3;
+  --gold-dim: #6a5828;
+  --cream: #e5d3b5;
+  --dark-teal: #0e2a28;
+  --dark-navy: #0d1535;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 100%;
+  min-height: 100vh;
+  background: var(--bg);
+  font-family: 'Noto Serif TC', serif;
+  color: var(--cream);
+  display: flex;
+  justify-content: center;
+}
+
+.page {
+  width: min(90vw, 680px);
+  min-height: 100vh;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 50px 40px 40px;
+}
+
+/* ── Outer decorative frame ── */
+.frame {
+  position: fixed;
+  inset: 14px;
+  border: 1px solid var(--gold-dim);
+  pointer-events: none;
+  z-index: 0;
+}
+.frame::before {
+  content: '';
+  position: absolute;
+  inset: 4px;
+  border: 1px solid rgba(201,168,76,0.18);
+}
+
+/* ── Corner dots (top/bottom center of frame) ── */
+.dot-top, .dot-bottom {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0.7;
+  margin: 4px auto;
+}
+
+/* ── Corner medallions ── */
+.medallion {
+  position: fixed;
+  width: 80px;
+  height: 80px;
+  z-index: 1;
+}
+.medallion.tl { top: 14px; left: 14px; }
+.medallion.tr { top: 14px; right: 14px; }
+.medallion.bl { bottom: 14px; left: 14px; }
+.medallion.br { bottom: 14px; right: 14px; }
+
+/* ── Title ── */
+.title {
+  font-size: clamp(44px, 9vw, 82px);
+  font-weight: 700;
+  letter-spacing: 0.35em;
+  color: var(--cream);
+  text-align: center;
+  line-height: 1;
+  margin-top: 30px;
+  position: relative;
+  z-index: 2;
+}
+
+.title-ornament {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 60px;
+  opacity: 0.85;
+}
+
+.title-line {
+  width: 100%;
+  max-width: 420px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold), transparent);
+  margin: 14px auto 10px;
+}
+
+.subtitle {
+  font-size: clamp(11px, 2vw, 14px);
+  letter-spacing: 0.4em;
+  color: var(--cream);
+  opacity: 0.8;
+  text-align: center;
+  margin-bottom: 12px;
+}
+
+.dot-small {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--gold);
+  opacity: 0.6;
+  margin: 6px auto;
+}
+
+/* ── Circle area ── */
+.circle-zone {
+  position: relative;
+  width: min(80vw, 420px);
+  aspect-ratio: 1;
+  margin: 16px auto;
+  flex-shrink: 0;
+}
+
+#star-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  display: block;
+}
+
+/* ── File links around the circle ── */
+.file-links {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.file-link {
+  position: absolute;
+  pointer-events: all;
+  text-decoration: none;
+  color: var(--gold-light);
+  font-size: clamp(8px, 1.5vw, 12px);
+  letter-spacing: 0.08em;
+  writing-mode: horizontal-tb;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  transition: color 0.3s, opacity 0.3s;
+  opacity: 0.82;
+}
+
+.file-link:hover {
+  color: #fff;
+  opacity: 1;
+}
+
+.file-link .link-label {
+  font-size: inherit;
+  text-align: center;
+  line-height: 1.4;
+  max-width: 100px;
+  word-break: break-all;
+}
+
+.file-link .link-line {
+  display: block;
+  background: var(--gold-dim);
+  transition: background 0.3s;
+}
+
+.file-link:hover .link-line {
+  background: var(--gold);
+}
+
+/* Left link */
+.file-link.left {
+  left: -8px;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  text-align: right;
+  align-items: flex-end;
+  padding-right: 10px;
+}
+.file-link.left .link-line {
+  width: 24px;
+  height: 1px;
+}
+
+/* Upper right link */
+.file-link.upper-right {
+  right: -8px;
+  top: 18%;
+  transform: translate(100%, -50%);
+  text-align: left;
+  align-items: flex-start;
+  padding-left: 10px;
+}
+.file-link.upper-right .link-line {
+  width: 24px;
+  height: 1px;
+}
+
+/* Lower right link */
+.file-link.lower-right {
+  right: -8px;
+  top: 78%;
+  transform: translate(100%, -50%);
+  text-align: left;
+  align-items: flex-start;
+  padding-left: 10px;
+}
+.file-link.lower-right .link-line {
+  width: 24px;
+  height: 1px;
+}
+
+/* ── Below circle ── */
+.tagline {
+  font-size: clamp(11px, 1.8vw, 13px);
+  letter-spacing: 0.25em;
+  color: var(--cream);
+  opacity: 0.75;
+  text-align: center;
+  margin: 10px 0 8px;
+}
+
+.author {
+  font-size: clamp(20px, 4vw, 32px);
+  letter-spacing: 0.5em;
+  color: var(--cream);
+  text-align: center;
+  margin: 14px 0 6px;
+}
+
+.year {
+  font-size: clamp(11px, 2vw, 14px);
+  letter-spacing: 0.35em;
+  color: var(--cream);
+  opacity: 0.65;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+/* ── Mode indicator ── */
+.mode-badge {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  font-size: 10px;
+  color: var(--gold-dim);
+  letter-spacing: 0.1em;
+  z-index: 10;
+  opacity: 0.5;
+}
+
+/* ── Intro section ── */
+.intro-section {
+  width: 100%;
+  max-width: 560px;
+  margin: 16px auto 0;
+  padding: 20px 28px;
+  border-top: 1px solid rgba(201,168,76,0.25);
+  border-bottom: 1px solid rgba(201,168,76,0.25);
+  position: relative;
+  z-index: 2;
+}
+
+.intro-section::before,
+.intro-section::after {
+  content: '◆';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--gold);
+  font-size: 8px;
+  opacity: 0.6;
+}
+.intro-section::before { top: -6px; }
+.intro-section::after  { bottom: -6px; }
+
+.intro-questions {
+  font-size: clamp(11px, 1.8vw, 13px);
+  letter-spacing: 0.08em;
+  color: var(--gold-light);
+  opacity: 0.85;
+  line-height: 2;
+  text-align: center;
+  margin-bottom: 14px;
+}
+
+.intro-body {
+  font-size: clamp(11px, 1.7vw, 13px);
+  letter-spacing: 0.06em;
+  color: var(--cream);
+  opacity: 0.72;
+  line-height: 2.1;
+  text-align: justify;
+  text-justify: inter-ideograph;
+}
+
+/* ── Side decorations ── */
+.side-ornament {
+  position: fixed;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: 0.3;
+}
+.side-ornament.left { left: 18px; }
+.side-ornament.right { right: 18px; }
+</style>
+</head>
+<body>
+
+<!-- Fixed frame -->
+<div class="frame"></div>
+
+<!-- Corner medallions -->
+<svg class="medallion tl" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="40" cy="40" r="36" fill="#0d1535" stroke="#c9a84c" stroke-width="1"/>
+  <circle cx="40" cy="40" r="30" fill="none" stroke="#c9a84c" stroke-width="0.5" opacity="0.5"/>
+  <path d="M40 10 A30 30 0 0 1 40 70 A15 15 0 0 1 40 40 A15 15 0 0 0 40 10Z" fill="#1a2a50" opacity="0.8"/>
+  <circle cx="40" cy="25" r="5" fill="#c9a84c" opacity="0.7"/>
+  <circle cx="40" cy="55" r="5" fill="#0d1535" stroke="#c9a84c" stroke-width="0.5"/>
+  <circle cx="40" cy="25" r="2" fill="#0d1535"/>
+  <circle cx="40" cy="55" r="2" fill="#c9a84c" opacity="0.7"/>
+  <circle cx="40" cy="40" r="30" fill="none" stroke="#c9a84c" stroke-width="1"/>
+</svg>
+
+<svg class="medallion tr" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="40" cy="40" r="36" fill="#0d1535" stroke="#c9a84c" stroke-width="1"/>
+  <circle cx="40" cy="40" r="30" fill="none" stroke="#c9a84c" stroke-width="0.5" opacity="0.5"/>
+  <ellipse cx="40" cy="40" rx="22" ry="13" fill="none" stroke="#c9a84c" stroke-width="1" opacity="0.8"/>
+  <circle cx="40" cy="40" r="9" fill="none" stroke="#c9a84c" stroke-width="1"/>
+  <circle cx="40" cy="40" r="5" fill="#c9a84c" opacity="0.6"/>
+  <circle cx="40" cy="40" r="2" fill="#0d1535"/>
+  <line x1="40" y1="27" x2="40" y2="23" stroke="#c9a84c" stroke-width="0.7" opacity="0.6"/>
+  <line x1="28" y1="32" x2="25" y2="29" stroke="#c9a84c" stroke-width="0.7" opacity="0.6"/>
+  <line x1="52" y1="32" x2="55" y2="29" stroke="#c9a84c" stroke-width="0.7" opacity="0.6"/>
+</svg>
+
+<svg class="medallion bl" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="40" cy="40" r="36" fill="#0e2a28" stroke="#c9a84c" stroke-width="1"/>
+  <circle cx="40" cy="40" r="30" fill="none" stroke="#c9a84c" stroke-width="0.5" opacity="0.5"/>
+  <path d="M40 40 m-14 0 a10 10 0 1 1 28 0 a10 10 0 1 1 -28 0" fill="none" stroke="#c9a84c" stroke-width="1.2" opacity="0.85"/>
+  <circle cx="26" cy="40" r="10" fill="none" stroke="#c9a84c" stroke-width="0.8" opacity="0.5"/>
+  <circle cx="54" cy="40" r="10" fill="none" stroke="#c9a84c" stroke-width="0.8" opacity="0.5"/>
+  <circle cx="26" cy="40" r="3" fill="#c9a84c" opacity="0.5"/>
+  <circle cx="54" cy="40" r="3" fill="#c9a84c" opacity="0.5"/>
+</svg>
+
+<svg class="medallion br" viewBox="0 0 80 80" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="40" cy="40" r="36" fill="#0e2a28" stroke="#c9a84c" stroke-width="1"/>
+  <circle cx="40" cy="40" r="30" fill="none" stroke="#c9a84c" stroke-width="0.5" opacity="0.5"/>
+  <polygon points="40,16 58,40 40,64 22,40" fill="none" stroke="#c9a84c" stroke-width="1" opacity="0.85"/>
+  <polygon points="40,24 52,40 40,56 28,40" fill="none" stroke="#c9a84c" stroke-width="0.6" opacity="0.5"/>
+  <line x1="22" y1="40" x2="58" y2="40" stroke="#c9a84c" stroke-width="0.5" opacity="0.4"/>
+  <circle cx="40" cy="40" r="4" fill="#c9a84c" opacity="0.5"/>
+  <circle cx="40" cy="40" r="1.5" fill="#e8d5a3"/>
+</svg>
+
+<!-- Side ornaments -->
+<svg class="side-ornament left" width="12" height="60" viewBox="0 0 12 60">
+  <path d="M6 0 Q10 15 6 30 Q2 45 6 60" stroke="#c9a84c" stroke-width="0.8" fill="none"/>
+  <circle cx="6" cy="30" r="3" fill="none" stroke="#c9a84c" stroke-width="0.8"/>
+</svg>
+<svg class="side-ornament right" width="12" height="60" viewBox="0 0 12 60">
+  <path d="M6 0 Q2 15 6 30 Q10 45 6 60" stroke="#c9a84c" stroke-width="0.8" fill="none"/>
+  <circle cx="6" cy="30" r="3" fill="none" stroke="#c9a84c" stroke-width="0.8"/>
+</svg>
+
+<!-- Main page content -->
+<div class="page">
+  <div class="dot-small" style="margin-top:4px;"></div>
+
+  <!-- Title -->
+  <h1 class="title" style="position:relative;">
+    閉
+    <span style="display:inline-block;position:relative;margin:0 0.1em;">
+      環
+      <svg style="position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:36px;opacity:0.75" viewBox="0 0 36 20" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="18" cy="14" r="5" fill="none" stroke="#c9a84c" stroke-width="0.8"/>
+        <circle cx="9" cy="10" r="4" fill="none" stroke="#c9a84c" stroke-width="0.8"/>
+        <circle cx="27" cy="10" r="4" fill="none" stroke="#c9a84c" stroke-width="0.8"/>
+        <circle cx="18" cy="4" r="4" fill="none" stroke="#c9a84c" stroke-width="0.8"/>
+        <circle cx="18" cy="11" r="2" fill="#c9a84c" opacity="0.5"/>
+      </svg>
+    </span>
+    論
+  </h1>
+
+  <div class="title-line"></div>
+  <div class="subtitle">終極根基　第一意識　宇宙閉環</div>
+
+  <div class="intro-section">
+    <p class="intro-questions">
+      「世界為什麼會存在？」「神是不是只是人想出來的？」<br>
+      「痛苦、命運、自由意志到底有沒有邏輯？」
+    </p>
+    <p class="intro-body">
+      《閉環論》就是從這些問題開始。它不是叫你先相信某個宗教，而是一步步追問：如果世界不能只用一句「本來就是這樣」打發，那麼存在最後到底靠什麼成立？這篇論文嘗試用「閉環」回答這個問題，並把神、佛教、科學、命運、惡與痛苦放進同一套邏輯裡重新檢視。
+    </p>
+  </div>
+
+  <div class="dot-small"></div>
+
+  <!-- Circle with star map and file links -->
+  <div class="circle-zone">
+    <canvas id="star-canvas"></canvas>
+
+    <!-- File links -->
+    <div class="file-links">
+
+      <!-- Left: 閱讀前契約 BEFORE YOU READ -->
+      <a class="file-link left" href="pdf/閱讀前契約_BEFORE_YOU_READ.pdf" target="_blank">
+        <span class="link-label" style="font-size:clamp(7px,1.2vw,11px);letter-spacing:0.08em;line-height:1.5;text-align:right;">閱讀前契約<br><span style="font-family:'IM Fell English',serif;font-size:0.82em;letter-spacing:0.04em;opacity:0.75;">BEFORE YOU READ</span></span>
+        <span class="link-line"></span>
+      </a>
+
+      <!-- Upper right: 閉環論 -->
+      <a class="file-link upper-right" href="pdf/閉環論.pdf" target="_blank">
+        <span class="link-line"></span>
+        <span class="link-label" style="font-size:clamp(12px,2.2vw,15px);letter-spacing:0.2em;">閉環論</span>
+      </a>
+
+      <!-- Lower right: Doctrine_of_Closure -->
+      <a class="file-link lower-right" href="pdf/Doctrine_of_Closure.pdf" target="_blank">
+        <span class="link-line"></span>
+        <span class="link-label" style="font-size:clamp(7px,1.1vw,10px);font-family:'IM Fell English',serif;letter-spacing:0.06em;">Doctrine<br>of Closure</span>
+      </a>
+
+    </div>
+  </div>
+
+  <div class="dot-small"></div>
+  <div class="title-line" style="max-width:300px;"></div>
+  <div class="tagline">以可回接的自限整體而恒存</div>
+  <div class="title-line" style="max-width:300px;margin-top:8px;"></div>
+  <div class="dot-small"></div>
+
+  <div class="year">二〇二六</div>
+  <div class="dot-small" style="margin-top:8px;"></div>
+
+</div>
+
+<div class="mode-badge" id="mode-badge"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// STAR DATA
+// ═══════════════════════════════════════════════════════════════
+
+const NORTH_STARS = [
+  // Spectral types: O=blue, B=blue-white, A=white-blue, F=white, G=yellow-white, K=orange, M=red-orange
+  {cx:0.50, cy:0.18, r:3.2, glow:true, sp:'F'},   // Polaris (α UMi) F7Ib
+  {cx:0.46, cy:0.24, r:1.4, sp:'A'},               // Kochab area
+  {cx:0.44, cy:0.30, r:1.3, sp:'G'},
+  {cx:0.43, cy:0.36, r:2.6, glow:true, sp:'K'},    // Dubhe (α UMa) K0III
+  {cx:0.48, cy:0.39, r:2.3, sp:'A'},               // Merak (β UMa) A1V
+  {cx:0.53, cy:0.37, r:2.2, sp:'F'},               // Phecda (γ UMa) A0Ve
+  {cx:0.57, cy:0.32, r:2.0, sp:'A'},               // Megrez
+  {cx:0.63, cy:0.30, r:2.5, glow:true, sp:'A'},    // Alioth (ε UMa) A1p
+  {cx:0.68, cy:0.34, r:2.3, sp:'K'},               // Mizar (ζ UMa) A2V
+  {cx:0.72, cy:0.30, r:2.1, sp:'A'},               // Alkaid (η UMa) B3V
+  {cx:0.27, cy:0.27, r:2.1, sp:'A'},               // Cassiopeia region
+  {cx:0.23, cy:0.23, r:2.3, sp:'K'},               // Schedar (α Cas) K0IIIa
+  {cx:0.20, cy:0.27, r:1.9, sp:'F'},               // Caph (β Cas) F2III
+  {cx:0.17, cy:0.22, r:2.0, sp:'B'},               // Gamma Cas B0IVe
+  {cx:0.14, cy:0.27, r:2.1, sp:'A'},               // Ruchbah (δ Cas) A5III
+  {cx:0.38, cy:0.55, r:3.0, glow:true, sp:'K'},    // Arcturus (α Boo) K1.5III
+  {cx:0.34, cy:0.62, r:1.5, sp:'G'},               // Boötes region
+  {cx:0.42, cy:0.60, r:1.6, sp:'K'},               // Izar (ε Boo) K0II
+  {cx:0.36, cy:0.49, r:1.4, sp:'F'},
+  {cx:0.55, cy:0.48, r:1.8, sp:'A'},               // Corona Borealis
+  {cx:0.60, cy:0.46, r:1.5, sp:'F'},               // Alphecca (α CrB) A0V
+  {cx:0.64, cy:0.49, r:1.6, sp:'G'},
+  {cx:0.67, cy:0.54, r:1.4, sp:'K'},
+  {cx:0.70, cy:0.52, r:2.8, glow:true, sp:'G'},    // Capella (α Aur) G5+G0
+  {cx:0.58, cy:0.65, r:2.5, sp:'A'},               // Vega (α Lyr) A0Va
+  {cx:0.65, cy:0.72, r:2.4, glow:true, sp:'A'},    // Deneb (α Cyg) A2Ia
+  {cx:0.62, cy:0.77, r:1.3, sp:'F'},
+  {cx:0.68, cy:0.76, r:1.3, sp:'G'},
+  {cx:0.30, cy:0.68, r:2.6, glow:true, sp:'B'},    // Regulus (α Leo) B7V
+  {cx:0.26, cy:0.72, r:1.5, sp:'K'},               // Denebola (β Leo) A3V
+  {cx:0.34, cy:0.75, r:1.4, sp:'G'},
+  {cx:0.38, cy:0.72, r:1.3, sp:'F'},
+  {cx:0.25, cy:0.64, r:1.6, sp:'A'},
+  {cx:0.48, cy:0.72, r:2.2, sp:'K'},               // Spica (α Vir) B1V
+  {cx:0.44, cy:0.78, r:1.5, sp:'G'},
+  {cx:0.52, cy:0.78, r:1.4, sp:'F'},
+  {cx:0.72, cy:0.42, r:1.7, sp:'A'},
+  {cx:0.76, cy:0.46, r:1.5, sp:'K'},
+  {cx:0.78, cy:0.52, r:1.6, sp:'G'},
+  {cx:0.75, cy:0.56, r:1.4, sp:'F'},
+  {cx:0.20, cy:0.42, r:1.3, sp:'A'},
+  {cx:0.18, cy:0.52, r:1.1, sp:'G'},
+  {cx:0.22, cy:0.60, r:1.2, sp:'K'},
+  {cx:0.16, cy:0.68, r:1.1, sp:'F'},
+  {cx:0.80, cy:0.30, r:1.2, sp:'A'},
+  {cx:0.82, cy:0.42, r:1.0, sp:'G'},
+  {cx:0.78, cy:0.68, r:1.1, sp:'K'},
+  {cx:0.82, cy:0.76, r:1.0, sp:'F'},
+  {cx:0.30, cy:0.85, r:1.2, sp:'G'},
+  {cx:0.50, cy:0.88, r:1.1, sp:'A'},
+  {cx:0.70, cy:0.86, r:1.0, sp:'K'},
+  {cx:0.58, cy:0.55, r:1.3, sp:'F'},
+  {cx:0.45, cy:0.57, r:1.0, sp:'G'},
+  {cx:0.38, cy:0.40, r:1.1, sp:'A'},
+  {cx:0.62, cy:0.62, r:1.2, sp:'K'},
+];
+
+const SOUTH_STARS = [
+  // Spectral types based on real southern bright stars
+  {cx:0.28, cy:0.44, r:2.8, glow:true, sp:'B'},   // Achernar (α Eri) B6Vpe — blue
+  {cx:0.28, cy:0.56, r:2.5, sp:'A'},               // Eridanus region
+  {cx:0.22, cy:0.50, r:2.2, sp:'F'},
+  {cx:0.34, cy:0.50, r:2.4, glow:true, sp:'B'},    // Acrux (α Cru) B0.5IV — deep blue
+  {cx:0.42, cy:0.55, r:3.2, glow:true, sp:'A'},    // Sirius (α CMa) A1V — blue-white, brightest star
+  {cx:0.50, cy:0.52, r:3.0, glow:true, sp:'F'},    // Canopus (α Car) F0Ib — white
+  {cx:0.24, cy:0.72, r:3.4, glow:true, sp:'G'},    // Alpha Centauri (α Cen A) G2V — yellow
+  {cx:0.16, cy:0.38, r:2.8, glow:true, sp:'B'},    // Rigel (β Ori) B8Ia — blue-white
+  {cx:0.65, cy:0.34, r:2.9, glow:true, sp:'M'},    // Betelgeuse (α Ori) M1-M2Ia — RED
+  {cx:0.70, cy:0.30, r:1.8, sp:'A'},               // Bellatrix (γ Ori) B2III
+  {cx:0.60, cy:0.30, r:1.6, sp:'B'},               // Mintaka (δ Ori) O9.5II — blue
+  {cx:0.72, cy:0.37, r:1.7, sp:'A'},               // Alnilam (ε Ori) B0Ia
+  {cx:0.68, cy:0.42, r:1.6, sp:'A'},               // Alnitak (ζ Ori) O9.7Ib
+  {cx:0.74, cy:0.46, r:1.8, sp:'A'},               // Saiph (κ Ori) B0.5Ia
+  {cx:0.78, cy:0.50, r:1.7, sp:'F'},
+  {cx:0.76, cy:0.56, r:1.6, sp:'G'},
+  {cx:0.56, cy:0.46, r:2.2, sp:'A'},               // Adhara (ε CMa) B2II
+  {cx:0.52, cy:0.40, r:1.8, sp:'K'},               // Wezen (δ CMa) F8Ia
+  {cx:0.60, cy:0.40, r:1.7, sp:'F'},
+  {cx:0.54, cy:0.52, r:1.8, sp:'A'},
+  {cx:0.62, cy:0.54, r:1.5, sp:'G'},
+  {cx:0.78, cy:0.68, r:2.5, glow:true, sp:'A'},    // Fomalhaut (α PsA) A3Va — white-blue
+  {cx:0.36, cy:0.28, r:2.6, glow:true, sp:'B'},    // Mimosa (β Cru) B0.5III — blue
+  {cx:0.28, cy:0.28, r:2.3, sp:'A'},               // Gacrux (γ Cru) M3.5III
+  {cx:0.32, cy:0.24, r:1.7, sp:'F'},
+  {cx:0.30, cy:0.34, r:1.6, sp:'K'},
+  {cx:0.36, cy:0.34, r:1.5, sp:'G'},
+  {cx:0.42, cy:0.38, r:3.6, glow:true, sp:'B'},    // Hadar (β Cen) B1III — blue
+  {cx:0.46, cy:0.44, r:1.6, sp:'A'},
+  {cx:0.15, cy:0.64, r:1.2, sp:'K'},
+  {cx:0.18, cy:0.62, r:1.4, sp:'F'},
+  {cx:0.16, cy:0.68, r:1.3, sp:'G'},
+  {cx:0.20, cy:0.66, r:1.1, sp:'A'},
+  {cx:0.13, cy:0.66, r:1.0, sp:'K'},
+  {cx:0.18, cy:0.70, r:1.0, sp:'F'},
+  {cx:0.18, cy:0.82, r:1.1, sp:'G'},
+  {cx:0.22, cy:0.80, r:1.3, sp:'A'},
+  {cx:0.20, cy:0.84, r:1.0, sp:'K'},
+  {cx:0.44, cy:0.62, r:1.6, sp:'F'},
+  {cx:0.38, cy:0.64, r:1.4, sp:'G'},
+  {cx:0.48, cy:0.68, r:1.3, sp:'A'},
+  {cx:0.36, cy:0.72, r:1.2, sp:'K'},
+  {cx:0.58, cy:0.64, r:1.3, sp:'F'},
+  {cx:0.64, cy:0.62, r:1.1, sp:'G'},
+  {cx:0.70, cy:0.74, r:1.2, sp:'A'},
+  {cx:0.82, cy:0.40, r:1.0, sp:'K'},
+  {cx:0.80, cy:0.76, r:1.1, sp:'F'},
+  {cx:0.74, cy:0.82, r:1.0, sp:'G'},
+  {cx:0.52, cy:0.78, r:1.2, sp:'A'},
+  {cx:0.30, cy:0.80, r:1.1, sp:'K'},
+  {cx:0.50, cy:0.86, r:1.0, sp:'F'},
+  {cx:0.66, cy:0.86, r:1.0, sp:'G'},
+  {cx:0.40, cy:0.15, r:1.2, sp:'A'},
+  {cx:0.55, cy:0.18, r:1.1, sp:'K'},
+  {cx:0.70, cy:0.16, r:1.0, sp:'F'},
+  {cx:0.80, cy:0.22, r:1.1, sp:'G'},
+];
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+
+function seededRand(seed) {
+  let s = seed;
+  return function() {
+    s = (s * 1664525 + 1013904223) & 0xffffffff;
+    return (s >>> 0) / 4294967296;
+  };
+}
+
+// Scientifically accurate stellar colors based on blackbody radiation / spectral classification
+// Colors derived from actual perceived star colors (O→M temperature sequence)
+const STAR_COLORS = {
+  'O': [155, 176, 255],   // ~40,000 K — deep blue (Mintaka, Alnitak)
+  'B': [170, 191, 255],   // ~20,000 K — blue-white (Rigel, Achernar, Regulus)
+  'A': [213, 224, 255],   // ~9,000 K  — white-blue (Sirius, Vega, Deneb)
+  'F': [248, 247, 255],   // ~7,000 K  — white (Canopus, Polaris)
+  'G': [255, 244, 200],   // ~5,800 K  — yellow-white like our Sun (Alpha Centauri A, Capella)
+  'K': [255, 210, 120],   // ~4,500 K  — orange (Arcturus, Dubhe, Aldebaran)
+  'M': [255, 140,  60],   // ~3,000 K  — red-orange (Betelgeuse, Antares)
+};
+
+function starColor(s) {
+  // Use spectral type if defined; otherwise derive from position hash
+  if (s.sp && STAR_COLORS[s.sp]) return STAR_COLORS[s.sp];
+  const v = ((s.cx * 7.31 + s.cy * 11.97) % 1 + 1) % 1;
+  if (v < 0.12) return STAR_COLORS['B'];
+  if (v < 0.28) return STAR_COLORS['A'];
+  if (v < 0.50) return STAR_COLORS['F'];
+  if (v < 0.68) return STAR_COLORS['G'];
+  if (v < 0.84) return STAR_COLORS['K'];
+  return STAR_COLORS['A'];
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TWINKLE SYSTEM
+// ═══════════════════════════════════════════════════════════════
+
+let twinkleData = [];
+
+function initTwinkles(stars) {
+  twinkleData = stars.map(s => {
+    if (s.glow) {
+      // Bright named stars: dramatic, fast, visible twinkle
+      return {
+        phase:  Math.random() * Math.PI * 2,
+        speed:  1.0 + Math.random() * 2.2,    // faster
+        amp:    0.22 + Math.random() * 0.28,   // larger amplitude
+        phase2: Math.random() * Math.PI * 2,
+        amp2:   0.06 + Math.random() * 0.10,
+        phase3: Math.random() * Math.PI * 2,
+        speed3: 3.5 + Math.random() * 4.0,    // high-freq flicker
+        amp3:   0.04 + Math.random() * 0.06
+      };
+    }
+    // Background stars: subtle, slow twinkle
+    return {
+      phase:  Math.random() * Math.PI * 2,
+      speed:  0.20 + Math.random() * 0.80,
+      amp:    0.03 + Math.random() * 0.07,
+      phase2: Math.random() * Math.PI * 2,
+      amp2:   0.01 + Math.random() * 0.02,
+      phase3: 0,
+      speed3: 0,
+      amp3:   0
+    };
+  });
+}
+
+function getTwinkle(i, tSec) {
+  const tw = twinkleData[i];
+  if (!tw) return 1;
+  const v = tw.amp  * Math.sin(tSec * tw.speed  + tw.phase)
+          + tw.amp2 * Math.sin(tSec * tw.speed * 2.3 + tw.phase2)
+          + tw.amp3 * Math.sin(tSec * tw.speed3 + tw.phase3);
+  return Math.max(0.28, Math.min(1.0, 0.88 + v));
+}
+
+// ═══════════════════════════════════════════════════════════════
+// GAP DEFINITION (upper-right opening, like book cover)
+// ═══════════════════════════════════════════════════════════════
+
+const DEG = Math.PI / 180;
+const GAP_END   = 310 * DEG;  // arc draws clockwise from here...
+const GAP_START = 22  * DEG;  // ...to here — leaving a gap 22°→310° = upper-right
+
+function arcWithGap(ctx, cx, cy, r) {
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, GAP_START, GAP_END); // clockwise 22°→310° = 288° arc
+  ctx.stroke();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// BUILD STATIC BACKGROUND (offscreen canvas)
+// ═══════════════════════════════════════════════════════════════
+
+let bgCanvas = null, bgSize = 0, bgIsDay = null;
+
+function buildBg(isDay, size) {
+  const dpr = devicePixelRatio;
+  const oc  = document.createElement('canvas');
+  oc.width  = size * dpr;
+  oc.height = size * dpr;
+  const ctx = oc.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const cx = size / 2, cy = size / 2, R = size / 2;
+  const INNER = R - 38; // inner edge of ornate ring band → star chart boundary
+
+  // ── Clip everything to circle ────────────────────────────────
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, R - 1, 0, Math.PI * 2);
+  ctx.clip();
+
+  // ── Deep-space background gradient ──────────────────────────
+  const bg = ctx.createRadialGradient(cx, cy - R * 0.12, 0, cx, cy, R);
+  bg.addColorStop(0,   '#12193e');
+  bg.addColorStop(0.4, '#090d20');
+  bg.addColorStop(1,   '#030610');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, size, size);
+
+  // ── Milky Way band (very subtle) ────────────────────────────
+  {
+    const ang = isDay ? -0.3 : 0.55;
+    const mw = ctx.createLinearGradient(
+      cx + Math.cos(ang) * R * 0.9, cy + Math.sin(ang) * R * 0.9,
+      cx - Math.cos(ang) * R * 0.9, cy - Math.sin(ang) * R * 0.9
+    );
+    mw.addColorStop(0,    'rgba(45,42,85,0)');
+    mw.addColorStop(0.35, 'rgba(38,35,78,0.07)');
+    mw.addColorStop(0.5,  'rgba(55,50,105,0.13)');
+    mw.addColorStop(0.65, 'rgba(38,35,78,0.07)');
+    mw.addColorStop(1,    'rgba(45,42,85,0)');
+    ctx.fillStyle = mw;
+    ctx.fillRect(0, 0, size, size);
+  }
+
+  // ── Field stars (background, static) ────────────────────────
+  const rand = seededRand(isDay ? 42 : 99);
+  for (let i = 0; i < 400; i++) {
+    const angle = rand() * Math.PI * 2;
+    const dist  = Math.sqrt(rand()) * INNER * 0.96;
+    const x     = cx + Math.cos(angle) * dist;
+    const y     = cy + Math.sin(angle) * dist;
+    const r     = rand() * 0.62 + 0.14;
+    const alpha = rand() * 0.30 + 0.07;
+    const ct    = rand();
+    let fill;
+    if      (ct < 0.18) fill = `rgba(188,208,255,${alpha})`;
+    else if (ct < 0.36) fill = `rgba(255,244,215,${alpha})`;
+    else if (ct < 0.54) fill = `rgba(200,195,235,${alpha})`;
+    else                fill = `rgba(215,210,200,${alpha})`;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fillStyle = fill;
+    ctx.fill();
+  }
+
+  // ── Inner star-chart grid ────────────────────────────────────
+  // Radial lines every 15°
+  for (let a = 0; a < 360; a += 15) {
+    const rad = a * DEG;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(cx + Math.cos(rad) * INNER, cy + Math.sin(rad) * INNER);
+    ctx.strokeStyle = 'rgba(201,168,76,0.038)';
+    ctx.lineWidth   = 0.4;
+    ctx.stroke();
+  }
+  // Concentric chart rings
+  [0.20, 0.36, 0.52, 0.68, 0.84].forEach(f => {
+    ctx.beginPath();
+    ctx.arc(cx, cy, INNER * f, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(201,168,76,0.05)';
+    ctx.lineWidth   = 0.4;
+    ctx.stroke();
+  });
+
+  // ── ORNATE RING BAND ─────────────────────────────────────────
+  // Layout (from inside out):
+  //  INNER        = inner boundary (R-38)
+  //  INNER + 8    ≈ R-30  ring A
+  //  INNER + 16   ≈ R-22  ring B
+  //  INNER + 24   ≈ R-14  ring C
+  //  R - 6        ring D
+  //  R - 1.5      outer ring (with gap)
+
+  const rA = INNER + 8;
+  const rB = INNER + 16;
+  const rC = INNER + 24;
+  const rD = R - 6;
+  const rOuter = R - 1.5;
+
+  // ── Inner border (ring INNER) ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, INNER, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(201,168,76,0.32)';
+  ctx.lineWidth   = 0.6;
+  ctx.stroke();
+
+  // Ticks from INNER toward rA (every 10°)
+  for (let a = 0; a < 360; a += 10) {
+    const rad  = a * DEG;
+    const cos  = Math.cos(rad), sin = Math.sin(rad);
+    const long = a % 30 === 0;
+    const r1   = INNER, r2 = long ? rA - 1 : rA - 3;
+    ctx.beginPath();
+    ctx.moveTo(cx + cos * r1, cy + sin * r1);
+    ctx.lineTo(cx + cos * r2, cy + sin * r2);
+    ctx.strokeStyle = long ? 'rgba(201,168,76,0.42)' : 'rgba(201,168,76,0.18)';
+    ctx.lineWidth   = long ? 0.65 : 0.35;
+    ctx.stroke();
+  }
+
+  // ── Ring A ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, rA, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(201,168,76,0.44)';
+  ctx.lineWidth   = 0.55;
+  ctx.stroke();
+
+  // Dots at 45° on ring A
+  for (let a = 0; a < 360; a += 45) {
+    const rad = a * DEG;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(rad) * rA, cy + Math.sin(rad) * rA, 1.2, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(201,168,76,0.55)';
+    ctx.fill();
+  }
+
+  // Ticks from rA toward rB (every 6°)
+  for (let a = 0; a < 360; a += 6) {
+    const rad  = a * DEG;
+    const cos  = Math.cos(rad), sin = Math.sin(rad);
+    const long = a % 30 === 0, med = a % 15 === 0;
+    const r1   = rA, r2 = long ? rB - 1 : (med ? rB - 2.5 : rB - 4);
+    ctx.beginPath();
+    ctx.moveTo(cx + cos * r1, cy + sin * r1);
+    ctx.lineTo(cx + cos * r2, cy + sin * r2);
+    ctx.strokeStyle = long ? 'rgba(201,168,76,0.50)' : (med ? 'rgba(201,168,76,0.28)' : 'rgba(201,168,76,0.14)');
+    ctx.lineWidth   = long ? 0.65 : 0.32;
+    ctx.stroke();
+  }
+
+  // ── Ring B ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, rB, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(201,168,76,0.50)';
+  ctx.lineWidth   = 0.6;
+  ctx.stroke();
+
+  // Small diamonds at 30° on ring B
+  for (let a = 0; a < 360; a += 30) {
+    const rad = a * DEG;
+    const dx  = cx + Math.cos(rad) * rB;
+    const dy  = cy + Math.sin(rad) * rB;
+    const ds  = 1.9;
+    ctx.save();
+    ctx.translate(dx, dy);
+    ctx.rotate(rad);
+    ctx.beginPath();
+    ctx.moveTo(0, -ds); ctx.lineTo(ds * 0.55, 0);
+    ctx.lineTo(0,  ds); ctx.lineTo(-ds * 0.55, 0);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(201,168,76,0.58)';
+    ctx.fill();
+    ctx.restore();
+  }
+
+  // Ticks from rB toward rC (every 4°)
+  for (let a = 0; a < 360; a += 4) {
+    const rad  = a * DEG;
+    const cos  = Math.cos(rad), sin = Math.sin(rad);
+    const long = a % 20 === 0;
+    const r1   = rB, r2 = long ? rC - 1 : rC - 3.5;
+    ctx.beginPath();
+    ctx.moveTo(cx + cos * r1, cy + sin * r1);
+    ctx.lineTo(cx + cos * r2, cy + sin * r2);
+    ctx.strokeStyle = long ? 'rgba(201,168,76,0.48)' : 'rgba(201,168,76,0.16)';
+    ctx.lineWidth   = long ? 0.65 : 0.30;
+    ctx.stroke();
+  }
+
+  // ── Ring C ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, rC, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(201,168,76,0.58)';
+  ctx.lineWidth   = 0.7;
+  ctx.stroke();
+
+  // Ticks from rC toward rD (every 3°, very fine)
+  for (let a = 0; a < 360; a += 3) {
+    const rad  = a * DEG;
+    const cos  = Math.cos(rad), sin = Math.sin(rad);
+    const long = a % 15 === 0, med = a % 9 === 0;
+    const r1   = rC, r2 = long ? rD - 1 : (med ? rD - 2.5 : rD - 4);
+    ctx.beginPath();
+    ctx.moveTo(cx + cos * r1, cy + sin * r1);
+    ctx.lineTo(cx + cos * r2, cy + sin * r2);
+    ctx.strokeStyle = long ? 'rgba(201,168,76,0.52)' : (med ? 'rgba(201,168,76,0.26)' : 'rgba(201,168,76,0.13)');
+    ctx.lineWidth   = long ? 0.62 : 0.28;
+    ctx.stroke();
+  }
+
+  // ── Ring D ──
+  ctx.beginPath();
+  ctx.arc(cx, cy, rD, 0, Math.PI * 2);
+  ctx.strokeStyle = 'rgba(201,168,76,0.62)';
+  ctx.lineWidth   = 0.75;
+  ctx.stroke();
+
+  // Small notch marks between rD and outer ring, every 5°
+  for (let a = 2.5; a < 360; a += 5) {
+    if (a % 30 < 1 || Math.abs(a % 30 - 30) < 1) continue;
+    const rad = a * DEG;
+    ctx.beginPath();
+    ctx.arc(cx + Math.cos(rad) * (rD + (rOuter - rD) * 0.5),
+            cy + Math.sin(rad) * (rD + (rOuter - rD) * 0.5),
+            0.65, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(201,168,76,0.38)';
+    ctx.fill();
+  }
+
+  // ── Outer ring WITH GAP (upper-right opening) ─────────────────
+  // Gap from GAP_START (22°) back to GAP_END (310°) — leaves opening at upper-right
+  ctx.beginPath();
+  ctx.arc(cx, cy, rOuter, GAP_START, GAP_END); // clockwise 22°→310°
+  ctx.strokeStyle = '#c9a84c';
+  ctx.lineWidth   = 1.8;
+  ctx.stroke();
+
+  // Also draw ring D with same gap
+  ctx.beginPath();
+  ctx.arc(cx, cy, rD, GAP_START, GAP_END);
+  ctx.strokeStyle = 'rgba(201,168,76,0.60)';
+  ctx.lineWidth   = 0.7;
+  ctx.stroke();
+
+  // ── Gap glow (the "opening" effect) ─────────────────────────
+  // Midpoint of gap: (310° + 360° + 22°) / 2 = (310+382)/2 = 346°
+  const gapMidAngle = 346 * DEG;
+  const gapGx = cx + Math.cos(gapMidAngle) * (R - 12);
+  const gapGy = cy + Math.sin(gapMidAngle) * (R - 12);
+
+  // Bright halo at gap
+  const gapGrd = ctx.createRadialGradient(gapGx, gapGy, 0, gapGx, gapGy, R * 0.35);
+  gapGrd.addColorStop(0,    'rgba(255,230,130,0.55)');
+  gapGrd.addColorStop(0.2,  'rgba(240,200,90,0.28)');
+  gapGrd.addColorStop(0.5,  'rgba(210,165,60,0.12)');
+  gapGrd.addColorStop(1,    'rgba(180,140,40,0)');
+  ctx.beginPath();
+  ctx.arc(gapGx, gapGy, R * 0.35, 0, Math.PI * 2);
+  ctx.fillStyle = gapGrd;
+  ctx.fill();
+
+  // Bright tip points at gap edges
+  [GAP_START, GAP_END].forEach(angle => {
+    const ex = cx + Math.cos(angle) * rOuter;
+    const ey = cy + Math.sin(angle) * rOuter;
+    const eg = ctx.createRadialGradient(ex, ey, 0, ex, ey, R * 0.06);
+    eg.addColorStop(0,   'rgba(255,245,180,0.9)');
+    eg.addColorStop(0.4, 'rgba(220,180,80,0.4)');
+    eg.addColorStop(1,   'rgba(201,168,76,0)');
+    ctx.beginPath();
+    ctx.arc(ex, ey, R * 0.06, 0, Math.PI * 2);
+    ctx.fillStyle = eg;
+    ctx.fill();
+  });
+
+  // ── Centre glow ──────────────────────────────────────────────
+  const cg = ctx.createRadialGradient(cx, cy, 0, cx, cy, INNER * 0.22);
+  cg.addColorStop(0,   'rgba(180,160,100,0.20)');
+  cg.addColorStop(0.5, 'rgba(140,120,60,0.07)');
+  cg.addColorStop(1,   'rgba(120,100,40,0)');
+  ctx.beginPath();
+  ctx.arc(cx, cy, INNER * 0.22, 0, Math.PI * 2);
+  ctx.fillStyle = cg;
+  ctx.fill();
+
+  // ── Chinese character markers ────────────────────────────────
+  // 道 at upper-left (~300°), 生 at left-lower (~205°), 空 at lower-right (~35°)
+  const fontSize   = Math.max(10, Math.floor(R * 0.068));
+  const charR      = INNER + 12; // sits in ring A-B zone
+  const charRadius = fontSize * 0.85;
+
+  ctx.font          = `${fontSize}px 'Noto Serif TC', serif`;
+  ctx.textAlign     = 'center';
+  ctx.textBaseline  = 'middle';
+
+  const chars = [
+    {text: '道', angle: 300 * DEG},
+    {text: '生', angle: 205 * DEG},
+    {text: '空', angle: 35  * DEG},
+  ];
+
+  chars.forEach(({text, angle}) => {
+    const x = cx + Math.cos(angle) * charR;
+    const y = cy + Math.sin(angle) * charR;
+    // Background circle
+    ctx.beginPath();
+    ctx.arc(x, y, charRadius, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(6,9,20,0.90)';
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(x, y, charRadius, 0, Math.PI * 2);
+    ctx.strokeStyle = 'rgba(201,168,76,0.38)';
+    ctx.lineWidth   = 0.6;
+    ctx.stroke();
+    // Character
+    ctx.fillStyle = 'rgba(201,168,76,0.90)';
+    ctx.fillText(text, x, y);
+  });
+
+  // '回' as faint label inside chart at right side
+  const smFont = Math.max(8, Math.floor(R * 0.048));
+  ctx.font      = `${smFont}px 'Noto Serif TC', serif`;
+  ctx.fillStyle = 'rgba(201,168,76,0.38)';
+  ctx.fillText('回', cx + INNER * 0.70, cy - INNER * 0.04);
+
+  ctx.restore();
+
+  bgCanvas = oc;
+  bgSize   = size;
+  bgIsDay  = isDay;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// DRAW A SINGLE NAMED STAR (on main canvas, with twinkle alpha)
+// ═══════════════════════════════════════════════════════════════
+
+function drawStar(ctx, s, alpha, size) {
+  const x  = s.cx * size;
+  const y  = s.cy * size;
+  const cx = size / 2, cy = size / 2, R = size / 2;
+  const INNER = R - 38;
+
+  // Bounds check: must be inside inner chart circle
+  const dx = x - cx, dy = y - cy;
+  if (dx * dx + dy * dy > (INNER - 2) * (INNER - 2)) return;
+
+  // Size pulsation for bright glow stars — radius breathes with twinkle
+  let r = s.r;
+  if (s.glow && r >= 2.4) {
+    r = r * (0.82 + alpha * 0.18);
+  }
+
+  // Atmospheric color shimmer: when dim → slight red shift, when bright → bluer/whiter
+  // Simulates atmospheric dispersion effect
+  let sc = starColor(s).slice();
+  if (s.glow) {
+    const shift = (alpha - 0.65) * 28;
+    sc[0] = Math.min(255, Math.max(0, sc[0] - shift * 0.2));
+    sc[1] = Math.min(255, Math.max(0, sc[1] - shift * 0.15));
+    sc[2] = Math.min(255, Math.max(0, sc[2] + shift * 0.35));
+  }
+
+  ctx.save();
+  ctx.globalAlpha = alpha;
+
+  // Outer glow for bright/glow stars
+  if (s.glow) {
+    const glowR = r * 6.5;
+    const grd   = ctx.createRadialGradient(x, y, 0, x, y, glowR);
+    grd.addColorStop(0,   `rgba(${sc[0]},${sc[1]},${sc[2]},0.32)`);
+    grd.addColorStop(0.28,`rgba(${sc[0]},${sc[1]},${sc[2]},0.12)`);
+    grd.addColorStop(1,   `rgba(${sc[0]},${sc[1]},${sc[2]},0)`);
+    ctx.beginPath();
+    ctx.arc(x, y, glowR, 0, Math.PI * 2);
+    ctx.fillStyle = grd;
+    ctx.fill();
+  }
+
+  // Secondary softer glow for all stars
+  if (r >= 1.5) {
+    const sg2 = ctx.createRadialGradient(x, y, 0, x, y, r * 3.5);
+    sg2.addColorStop(0,  `rgba(${sc[0]},${sc[1]},${sc[2]},0.20)`);
+    sg2.addColorStop(1,  `rgba(${sc[0]},${sc[1]},${sc[2]},0)`);
+    ctx.beginPath();
+    ctx.arc(x, y, r * 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = sg2;
+    ctx.fill();
+  }
+
+  // Star core (bright centre → colour fade)
+  const core = ctx.createRadialGradient(x, y, 0, x, y, r);
+  core.addColorStop(0,    '#ffffff');
+  core.addColorStop(0.30, `rgba(${sc[0]},${sc[1]},${sc[2]},0.95)`);
+  core.addColorStop(1,    `rgba(${sc[0]},${sc[1]},${sc[2]},0)`);
+  ctx.beginPath();
+  ctx.arc(x, y, r, 0, Math.PI * 2);
+  ctx.fillStyle = core;
+  ctx.fill();
+
+  // Diffraction spikes for brightest stars
+  if (r >= 2.8) {
+    ctx.globalAlpha = alpha * 0.20;
+    ctx.strokeStyle = `rgb(${sc[0]},${sc[1]},${sc[2]})`;
+    ctx.lineWidth   = 0.5;
+    for (let i = 0; i < 4; i++) {
+      const ang = i * Math.PI / 4;
+      ctx.beginPath();
+      ctx.moveTo(x + Math.cos(ang) * r * 1.5, y + Math.sin(ang) * r * 1.5);
+      ctx.lineTo(x + Math.cos(ang) * r * 5.8, y + Math.sin(ang) * r * 5.8);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(x - Math.cos(ang) * r * 1.5, y - Math.sin(ang) * r * 1.5);
+      ctx.lineTo(x - Math.cos(ang) * r * 5.8, y - Math.sin(ang) * r * 5.8);
+      ctx.stroke();
+    }
+  }
+
+  ctx.restore();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ANIMATION LOOP
+// ═══════════════════════════════════════════════════════════════
+
+let rafId      = null;
+let currentDay = false;
+
+function frame(t) {
+  const canvas = document.getElementById('star-canvas');
+  if (!canvas) return;
+
+  const size = canvas.offsetWidth;
+  const dpr  = devicePixelRatio;
+
+  // Resize canvas if needed
+  if (canvas.width !== size * dpr || canvas.height !== size * dpr) {
+    canvas.width  = size * dpr;
+    canvas.height = size * dpr;
+    bgCanvas      = null; // force rebuild
+  }
+
+  // Rebuild static background if needed
+  if (!bgCanvas || bgSize !== size || bgIsDay !== currentDay) {
+    buildBg(currentDay, size);
+  }
+
+  const ctx = canvas.getContext('2d');
+
+  // Draw background (static layers)
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.drawImage(bgCanvas, 0, 0);
+
+  // Draw animated named stars
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+  const cx = size / 2, cy = size / 2, R = size / 2;
+  const INNER = R - 38;
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, INNER - 1, 0, Math.PI * 2);
+  ctx.clip();
+
+  const stars = currentDay ? NORTH_STARS : SOUTH_STARS;
+  const tSec  = t * 0.001;
+  stars.forEach((s, i) => {
+    const alpha = getTwinkle(i, tSec);
+    drawStar(ctx, s, alpha, size);
+  });
+
+  ctx.restore();
+
+  rafId = requestAnimationFrame(frame);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+
+function init() {
+  const hour = new Date().getHours();
+  currentDay = hour >= 6 && hour < 18;
+
+  const stars = currentDay ? NORTH_STARS : SOUTH_STARS;
+  initTwinkles(stars);
+
+  document.getElementById('mode-badge').textContent =
+    currentDay ? '北半球 · 白晝' : '南半球 · 夜晚';
+
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = requestAnimationFrame(frame);
+}
+
+window.addEventListener('load', init);
+window.addEventListener('resize', () => { bgCanvas = null; });
+</script>
+</body>
+</html>
